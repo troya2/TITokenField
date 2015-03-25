@@ -105,7 +105,7 @@
 		UITableViewController * tableViewController = [[UITableViewController alloc] initWithStyle:UITableViewStylePlain];
 		[tableViewController.tableView setDelegate:self];
 		[tableViewController.tableView setDataSource:self];
-		[tableViewController setContentSizeForViewInPopover:CGSizeMake(400, 400)];
+        [tableViewController setPreferredContentSize:CGSizeMake(400, 400)];
 		
 		_resultsTable = tableViewController.tableView;
 		
@@ -420,7 +420,7 @@
 
 #pragma mark Other
 - (NSString *)description {
-	return [NSString stringWithFormat:@"<TITokenFieldView %p; Token count = %d>", self, self.tokenTitles.count];
+	return [NSString stringWithFormat:@"<TITokenFieldView %p; Token count = %lu>", self, (unsigned long)self.tokenTitles.count];
 }
 
 - (void)dealloc {
@@ -596,11 +596,13 @@ NSString * const kTextHidden = @"\u200D"; // Zero-Width Joiner
 			NSArray * titles = self.tokenTitles;
 			untokenized = [titles componentsJoinedByString:@", "];
 			
-			CGSize untokSize = [untokenized sizeWithFont:[UIFont systemFontOfSize:14]];
+            NSDictionary *attributes = @{NSFontAttributeName:[UIFont systemFontOfSize:14]};
+            
+			CGSize untokSize = [untokenized sizeWithAttributes:attributes];
 			CGFloat availableWidth = self.bounds.size.width - self.leftView.bounds.size.width - self.rightView.bounds.size.width;
 			
 			if (_tokens.count > 1 && untokSize.width > availableWidth){
-				untokenized = [NSString stringWithFormat:@"%d recipients", titles.count];
+				untokenized = [NSString stringWithFormat:@"%lu recipients", (unsigned long)titles.count];
 			}
 			
 		}
@@ -1061,7 +1063,7 @@ NSString * const kTextHidden = @"\u200D"; // Zero-Width Joiner
 CGFloat const hTextPadding = 14;
 CGFloat const vTextPadding = 8;
 CGFloat const kDisclosureThickness = 2.5;
-UILineBreakMode const kLineBreakMode = UILineBreakModeTailTruncation;
+UILineBreakMode const kLineBreakMode = NSLineBreakByTruncatingTail;
 
 @interface TIToken (Private)
 CGPathRef CGPathCreateTokenPath(CGSize size, BOOL innerPath);
@@ -1198,8 +1200,18 @@ CGPathRef CGPathCreateDisclosureIndicatorPath(CGPoint arrowPointFront, CGFloat h
 		CGPathRelease(CGPathCreateDisclosureIndicatorPath(CGPointZero, _font.pointSize, kDisclosureThickness, &accessoryWidth));
 		accessoryWidth += floorf(hTextPadding / 2);
 	}
+    
+    NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+    /// Set line break mode
+    paragraphStyle.lineBreakMode = kLineBreakMode;
+    paragraphStyle.alignment = NSTextAlignmentLeft;
+    
+    CGFloat width = (_maxWidth - hTextPadding - accessoryWidth);
+    NSDictionary *attributes = @{NSFontAttributeName:_font, NSParagraphStyleAttributeName: paragraphStyle};
+    NSAttributedString *attributedText = [[NSAttributedString alloc] initWithString:_title attributes:attributes];
+    CGRect stringRect = [attributedText boundingRectWithSize:(CGSize){width, CGFLOAT_MAX} options:NSStringDrawingUsesLineFragmentOrigin context:nil];
+    CGSize titleSize = stringRect.size;
 	
-	CGSize titleSize = [_title sizeWithFont:_font forWidth:(_maxWidth - hTextPadding - accessoryWidth) lineBreakMode:kLineBreakMode];
 	CGFloat height = floorf(titleSize.height + vTextPadding);
 	
     return (CGSize){MAX(floorf(titleSize.width + hTextPadding + accessoryWidth), height - 3), height};
@@ -1307,14 +1319,25 @@ CGPathRef CGPathCreateDisclosureIndicatorPath(CGPoint arrowPointFront, CGFloat h
 	}
 	
 	CGColorSpaceRelease(colorspace);
+    
+    NSMutableParagraphStyle *paragraphStyle = [[NSParagraphStyle defaultParagraphStyle] mutableCopy];
+    /// Set line break mode
+    paragraphStyle.lineBreakMode = kLineBreakMode;
+    paragraphStyle.alignment = NSTextAlignmentLeft;
+    
+    CGFloat width = (_maxWidth - hTextPadding - accessoryWidth);
+    NSDictionary *attributes = @{NSFontAttributeName:_font, NSParagraphStyleAttributeName: paragraphStyle};
+    NSAttributedString *attributedText = [[NSAttributedString alloc] initWithString:_title attributes:attributes];
+    CGRect stringRect = [attributedText boundingRectWithSize:(CGSize){width, CGFLOAT_MAX} options:NSStringDrawingUsesLineFragmentOrigin context:nil];
+    CGSize titleSize = stringRect.size;
 	
-	CGSize titleSize = [_title sizeWithFont:_font forWidth:(_maxWidth - hTextPadding - accessoryWidth) lineBreakMode:kLineBreakMode];
 	CGFloat vPadding = floor((self.bounds.size.height - titleSize.height) / 2);
 	CGFloat titleWidth = ceilf(self.bounds.size.width - hTextPadding - accessoryWidth);
 	CGRect textBounds = CGRectMake(floorf(hTextPadding / 2), vPadding - 1, titleWidth, floorf(self.bounds.size.height - (vPadding * 2)));
 	
 	CGContextSetFillColorWithColor(context, (drawHighlighted ? _highlightedTextColor : _textColor).CGColor);
-	[_title drawInRect:textBounds withFont:_font lineBreakMode:kLineBreakMode];
+    
+    [_title drawInRect:textBounds withAttributes:attributes];
 }
 
 CGPathRef CGPathCreateTokenPath(CGSize size, BOOL innerPath) {
