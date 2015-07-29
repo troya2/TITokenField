@@ -1214,7 +1214,7 @@ CGPathRef CGPathCreateDisclosureIndicatorPath(CGPoint arrowPointFront, CGFloat h
 	
 	CGFloat height = floorf(titleSize.height + vTextPadding);
 	
-    return (CGSize){MAX(floorf(titleSize.width + hTextPadding + accessoryWidth), height - 3), height};
+    return (CGSize){MAX(floorf(ceilf(titleSize.width) + hTextPadding + accessoryWidth), height - 3), height};
 }
 
 #pragma mark Drawing
@@ -1332,7 +1332,7 @@ CGPathRef CGPathCreateDisclosureIndicatorPath(CGPoint arrowPointFront, CGFloat h
     CGSize titleSize = stringRect.size;
 	
 	CGFloat vPadding = floor((self.bounds.size.height - titleSize.height) / 2);
-	CGFloat titleWidth = ceilf(self.bounds.size.width - hTextPadding - accessoryWidth);
+        CGFloat titleWidth = ceilf(self.bounds.size.width) - hTextPadding - accessoryWidth;
 	CGRect textBounds = CGRectMake(floorf(hTextPadding / 2), vPadding - 1, titleWidth, floorf(self.bounds.size.height - (vPadding * 2)));
 	
 	CGContextSetFillColorWithColor(context, (drawHighlighted ? _highlightedTextColor : _textColor).CGColor);
